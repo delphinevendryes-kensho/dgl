@@ -189,10 +189,10 @@ class EGATConv(nn.Module):
             # (Delphine) in EGNN paper, they take the exponential of e and multiply it by edge features.
             e = th.exp(e)
             # (Delphine) batch multiplication of (P, N, N) by (N, N) - output size (P, N, N)
-            multi_e = th.bmm(edge_feat, e)
-            # compute softmax
-            # (Delphine) is this normalization?
-            graph.edata['a'] = self.attn_drop(edge_softmax(graph, multi_e))
+            multi_e = th.matmul(edge_feat, e)
+            # TODO(Delphine): normalization
+            # ds_multi_e = ...
+            graph.edata['a'] = self.attn_drop(multi_e)
             # message passing
             graph.update_all(fn.u_mul_e('ft', 'a', 'm'),
                              fn.sum('m', 'ft'))
