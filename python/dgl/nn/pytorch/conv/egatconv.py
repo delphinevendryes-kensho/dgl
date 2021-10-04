@@ -23,7 +23,7 @@ class EGATConv(nn.Module):
                  activation=None,
                  allow_zero_in_degree=False,
                  bias=True):
-        super(GATConv, self).__init__()
+        super(EGATConv, self).__init__()
         self._num_heads = num_heads
         self._in_src_feats, self._in_dst_feats = expand_as_pair(in_feats)
         self._out_feats = out_feats

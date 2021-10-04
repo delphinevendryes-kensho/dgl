@@ -548,6 +548,31 @@ def test_gat_conv(g, idtype, out_dim, num_heads):
     gat = nn.GATConv(5, out_dim, num_heads, residual=True)
     gat = gat.to(ctx)
     h = gat(g, feat)
+    
+@parametrize_dtype
+# @pytest.mark.parametrize('g', get_cases(['homo', 'block-bipartite'], exclude=['zero-degree']))
+@pytest.mark.parametrize('out_dim', [1, 5])
+@pytest.mark.parametrize('num_heads', [1, 4])
+def test_egat_conv(g, idtype, out_dim, num_heads):
+    g = g.astype(idtype).to(F.ctx())
+    ctx = F.ctx()
+    gat = nn.EGATConv(5, out_dim, num_heads)
+    feat = F.randn((g.number_of_src_nodes(), 5))
+    gat = gat.to(ctx)
+    edge_feats = F.randn((g.number_of_edges(), 5))
+    h = gat(g, feat, edge_feats)
+
+    # test pickle
+    th.save(gat, tmp_buffer)
+
+    assert h.shape == (g.number_of_dst_nodes(), num_heads, out_dim)
+    _, a = gat(g, feat, get_attention=True)
+    assert a.shape == (g.number_of_edges(), num_heads, 1)
+
+    # test residual connection
+    gat = nn.EGATConv(5, out_dim, num_heads, residual=True)
+    gat = gat.to(ctx)
+    h = gat(g, feat, edge_feats)
 
 @parametrize_dtype
 @pytest.mark.parametrize('g', get_cases(['bipartite'], exclude=['zero-degree']))
