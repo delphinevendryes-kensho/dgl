@@ -566,7 +566,7 @@ def test_egat_conv(g, idtype, out_dim, num_heads):
     th.save(gat, tmp_buffer)
 
     assert h.shape == (g.number_of_dst_nodes(), num_heads, out_dim)
-    _, a = gat(g, feat, get_attention=True)
+    _, a = gat(g, feat, edge_feats, get_attention=True)
     assert a.shape == (g.number_of_edges(), num_heads, 1)
 
     # test residual connection
