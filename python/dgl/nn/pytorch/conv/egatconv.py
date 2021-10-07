@@ -13,7 +13,7 @@ from ....utils import expand_as_pair
 EPSILON = 10e-4
 
 
-def _column_norm(g, edge_features: torch.Tensor, eps: float = EPSILON) -> torch.Tensor:
+def _column_norm(g, edge_features, eps=EPSILON):
     """Normalize edge features along columns."""
     with g.local_scope():
         g.edata["_e"] = edge_features
@@ -25,7 +25,7 @@ def _column_norm(g, edge_features: torch.Tensor, eps: float = EPSILON) -> torch.
         return g.edata["_norm_e"]
 
 
-def _row_norm(g, edge_features: torch.Tensor, eps: float = EPSILON) -> torch.Tensor:
+def _row_norm(g, edge_features, eps=EPSILON):
     """Normalize edge features along rows."""
     reversed_g = reverse(g)
     return _column_norm(reversed_g, edge_features, eps)
