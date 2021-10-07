@@ -10,12 +10,34 @@ from ..utils import Identity
 from ....utils import expand_as_pair
 
 
+EPSILON = 10e-4
+
+
+def _column_norm(g, edge_features: torch.Tensor, eps: float = EPSILON) -> torch.Tensor:
+    """Normalize edge features along columns."""
+    with g.local_scope():
+        g.edata["_e"] = edge_features
+        g.update_all(fn.copy_edge("_e", 'm'), fn.sum('m', '_in_weight'))
+        degs = g.dstdata['_in_weight'] + eps
+        norm = 1.0 / degs
+        g.dstdata['_dst_in_w'] = norm
+        g.apply_edges(lambda e: {"_norm_e": e.dst['_dst_in_w'] * e.data["_e"]})
+        return g.edata["_norm_e"]
+
+
+def _row_norm(g, edge_features: torch.Tensor, eps: float = EPSILON) -> torch.Tensor:
+    """Normalize edge features along rows."""
+    reversed_g = reverse(g)
+    return _column_norm(reversed_g, edge_features, eps)
+
+
 # pylint: enable=W0235
 class EGATConv(nn.Module):
     def __init__(self,
                  in_feats,
                  out_feats,
                  num_heads,
+                 norm="left",
                  feat_drop=0.,
                  attn_drop=0.,
                  negative_slope=0.2,
@@ -55,6 +77,7 @@ class EGATConv(nn.Module):
             self.register_buffer('res_fc', None)
         self.reset_parameters()
         self.activation = activation
+        self._norm = norm
 
     def reset_parameters(self):
         """
@@ -193,12 +216,15 @@ class EGATConv(nn.Module):
             # edge_feats must be (E, *, 1, p) for element wise multiplication
             edge_feat = edge_feat.unsqueeze(-2)
             # element-wise multiplication gives shape (E, *, H, p)
-            # do we flatten / aggregate to get (E, *, H * p) or (E, *, H) or (E, *, p)?
-            # try aggregating to get (E, *, H, 1)
             e = e * edge_feat
-            e = e.sum(dim=-1).unsqueeze(-1)
-            # TODO(Delphine): normalization --> softmax?
-            # graph.edata['a'] = self.attn_drop(edge_softmax(graph, e))
+            # do we flatten / aggregate to get (E, *, H * p) or (E, *, H) or (E, *, p)?
+            # try flattening to get (E, *, H * p)
+            e = e.view(e.size(0), e.size(-1) * e.size(-2))
+
+            if self._norm == "left":
+                e = _column_norm(graph, e)
+            elif self._norm == "right":
+                e = _row_norm(graph, e)
 
             graph.edata['a'] = self.attn_drop(e)
             # message passing
