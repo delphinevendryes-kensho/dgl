@@ -186,13 +186,21 @@ class EGATConv(nn.Module):
             # compute edge attention, el and er are a_l Wh_i and a_r Wh_j respectively.
             graph.apply_edges(fn.u_add_v('el', 'er', 'e'))
             e = self.leaky_relu(graph.edata.pop('e'))
-            # (Delphine) in EGNN paper, they take the exponential of e and multiply it by edge features.
+
+            # (Delphine) in EGNN paper: take exponential of e and multiply by edge features.
             e = th.exp(e)
-            # (Delphine) batch multiplication of (P, N, N) by (N, N) - output size (P, N, N)
-            multi_e = th.matmul(edge_feat, e)
+            # (Delphine) e dimension: (E, *, H, 1), edge_feats dimension: (E, *, p)
+            # edge feats must be (E, *, 1, p) for element wise multiplication
+            edge_feat = edge_feat.unsqueeze(-2)
+            # element-wise multiplication will yield shape (E, *, H, p)
+            # do we flatten / aggregate to get (E, *, H * p) or (E, *, H) or (E, *, p)?
+            # try aggregating to get (E, *, H, 1)
+            e = e * edge_feat
+            e = e.sum(dim=-1).unsqueeze(-1)
             # TODO(Delphine): normalization
             # ds_multi_e = ...
-            graph.edata['a'] = self.attn_drop(multi_e)
+
+            graph.edata['a'] = self.attn_drop(e)
             # message passing
             graph.update_all(fn.u_mul_e('ft', 'a', 'm'),
                              fn.sum('m', 'ft'))

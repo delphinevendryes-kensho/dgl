@@ -550,7 +550,7 @@ def test_gat_conv(g, idtype, out_dim, num_heads):
     h = gat(g, feat)
     
 @parametrize_dtype
-# @pytest.mark.parametrize('g', get_cases(['homo', 'block-bipartite'], exclude=['zero-degree']))
+@pytest.mark.parametrize('g', get_cases(['homo', 'block-bipartite'], exclude=['zero-degree']))
 @pytest.mark.parametrize('out_dim', [1, 5])
 @pytest.mark.parametrize('num_heads', [1, 4])
 def test_egat_conv(g, idtype, out_dim, num_heads):
