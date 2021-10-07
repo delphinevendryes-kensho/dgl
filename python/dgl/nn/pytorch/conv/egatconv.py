@@ -187,18 +187,18 @@ class EGATConv(nn.Module):
             graph.apply_edges(fn.u_add_v('el', 'er', 'e'))
             e = self.leaky_relu(graph.edata.pop('e'))
 
-            # (Delphine) in EGNN paper: take exponential of e and multiply by edge features.
+            # EGNN: take exponential of e and multiply by edge features.
             e = th.exp(e)
-            # (Delphine) e dimension: (E, *, H, 1), edge_feats dimension: (E, *, p)
-            # edge feats must be (E, *, 1, p) for element wise multiplication
+            # e dimension: (E, *, H, 1), edge_feats dimension: (E, *, p)
+            # edge_feats must be (E, *, 1, p) for element wise multiplication
             edge_feat = edge_feat.unsqueeze(-2)
-            # element-wise multiplication will yield shape (E, *, H, p)
+            # element-wise multiplication gives shape (E, *, H, p)
             # do we flatten / aggregate to get (E, *, H * p) or (E, *, H) or (E, *, p)?
             # try aggregating to get (E, *, H, 1)
             e = e * edge_feat
             e = e.sum(dim=-1).unsqueeze(-1)
-            # TODO(Delphine): normalization
-            # ds_multi_e = ...
+            # TODO(Delphine): normalization --> softmax?
+            # graph.edata['a'] = self.attn_drop(edge_softmax(graph, e))
 
             graph.edata['a'] = self.attn_drop(e)
             # message passing
