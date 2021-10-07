@@ -5,6 +5,7 @@ from .agnnconv import AGNNConv
 from .appnpconv import APPNPConv
 from .chebconv import ChebConv
 from .edgeconv import EdgeConv
+from .egatconv import EGATConv
 from .gatconv import GATConv
 from .ginconv import GINConv
 from .gmmconv import GMMConv
@@ -28,4 +29,4 @@ __all__ = ['GraphConv', 'EdgeWeightNorm', 'GATConv', 'TAGConv', 'RelGraphConv', 
            'SGConv', 'APPNPConv', 'GINConv', 'GatedGraphConv', 'GMMConv',
            'ChebConv', 'AGNNConv', 'NNConv', 'DenseGraphConv', 'DenseSAGEConv',
            'DenseChebConv', 'EdgeConv', 'AtomicConv', 'CFConv', 'DotGatConv', 'TWIRLSConv',
-           'TWIRLSUnfoldingAndAttention', 'GCN2Conv']
+           'TWIRLSUnfoldingAndAttention', 'GCN2Conv', 'EGATConv']
