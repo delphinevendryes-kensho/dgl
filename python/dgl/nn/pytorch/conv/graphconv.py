@@ -356,7 +356,8 @@ class GraphConv(nn.Module):
             Optional external weight tensor.
         edge_weight : torch.Tensor, optional
             Optional tensor on the edge. If given, the convolution will weight
-            with regard to the message.
+            with regard to the message. This should of shape :math:`(E, P)` where E is the number
+            of edges and P is the dimension of the edge weight.
 
         Returns
         -------
@@ -379,9 +380,10 @@ class GraphConv(nn.Module):
         ----
         * Input shape: :math:`(N, *, \text{in_feats})` where * means any number of additional
           dimensions, :math:`N` is the number of nodes.
-        * Output shape: :math:`(N, *, \text{out_feats})` where all but the last dimension are
-          the same shape as the input.
+        * Output shape: :math:`(N, *, \text{out_feats}) * \text{edge_weight_dimension}` where all
+          but the last dimension are the same shape as the input.
         * Weight shape: :math:`(\text{in_feats}, \text{out_feats})`.
+        * Edge weight shape: :math:`(\text{num_edges}, \text{edge_weight_dimension})`.
         """
         with graph.local_scope():
             if not self._allow_zero_in_degree:
@@ -398,7 +400,7 @@ class GraphConv(nn.Module):
             aggregate_fn = fn.copy_src('h', 'm')
             if edge_weight is not None:
                 assert edge_weight.shape[0] == graph.number_of_edges()
-                graph.edata['_edge_weight'] = edge_weight
+                graph.edata["_edge_weight"] = edge_weight.unsqueeze(-1)
                 aggregate_fn = fn.u_mul_e('h', '_edge_weight', 'm')
 
             # (BarclayII) For RGCN on heterogeneous graphs we need to support GCN on bipartite.
@@ -427,7 +429,7 @@ class GraphConv(nn.Module):
                     feat_src = th.matmul(feat_src, weight)
                 graph.srcdata['h'] = feat_src
                 graph.update_all(aggregate_fn, fn.sum(msg='m', out='h'))
-                rst = graph.dstdata['h']
+                rst = graph.dstdata["h"]
             else:
                 # aggregate first then mult W
                 graph.srcdata['h'] = feat_src
@@ -435,6 +437,7 @@ class GraphConv(nn.Module):
                 rst = graph.dstdata['h']
                 if weight is not None:
                     rst = th.matmul(rst, weight)
+            rst = rst.reshape(rst.shape[0], rst.shape[1] * rst.shape[2])
 
             if self._norm in ['right', 'both']:
                 degs = graph.in_degrees().float().clamp(min=1)
